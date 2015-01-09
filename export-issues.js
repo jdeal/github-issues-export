@@ -15,7 +15,9 @@
 //
 //------------------------------
 
-
+// Copyright 2014 Morgan Bickle
+// Comment: replaced authentication method for 2 factor auth users utilizing personal access tokens
+//  @see https://developer.github.com/v3/auth/#working-with-two-factor-authentication
 
 (function(){
 
@@ -137,8 +139,10 @@ function listMyIssues(){
 
       var request = $.ajax({
 
-        url: 'https://api.github.com/issues?access_token=' + oauthToken.token,
+        url: 'https://api.github.com/issues?state=all',
         type: 'GET',
+        username: user,
+        password: password,
 
         success: function(data, textStatus, jqXHR){
             logDebug('listMyIssues: Yea, it worked...' + textStatus + ' - ' + JSON.stringify(data) );
@@ -169,14 +173,15 @@ function listMyIssues(){
 
 function listRepoIssuesHeader(){
 
-    (argv.full) ? log( ['number', 'id' , 'title', 'state', 'created by', 'assigned to', 'created at', 'milestone', 'labels', 'comments', 'body'].join(sep) ) :
-                  log( ['number', 'id' , 'title', 'state', 'created by', 'assigned to', 'created at', 'milestone', 'labels', 'comments'].join(sep) ) ;
+    (argv.full) ? log( ['number', 'id' , 'title', 'state', 'created by', 'assigned to', 'created at', 'updated at','closed at', 'milestone', 'labels', 'comments', 'body'].join(sep) ) :
+                  log( ['number', 'id' , 'title', 'state', 'created by', 'assigned to', 'created at', 'updated at','closed at', 'milestone', 'labels', 'comments'].join(sep) ) ;
 
 }
 
 function escapeArray(array){
     return array.map(function (item) {
-        return '"' + item.toString().replace(/"/g, '""') + '"';
+        return (item) ? '"' + item.toString().replace(/"/g, '""') + '"' :
+                '"' + item + '"';
     });
 }
 
@@ -188,6 +193,8 @@ function listRepoIssues(repo_url){
 
         url: repo_url,
         type: 'GET',
+        username: argv.user,
+        password: argv.password,
 
         success: function(data, textStatus, jqXHR){
             logDebug('listRepoIssues: Yeah, it worked...' + textStatus + ' - ' + JSON.stringify(data) );
@@ -210,9 +217,9 @@ function listRepoIssues(repo_url){
 
 
                 // Print the result to stdout
-                (argv.full) ? log( escapeArray([value.number, value.id, value.title, value.state, value.user.login, value.assignee.login, value.created_at, value.milestone.title, 
+                (argv.full) ? log( escapeArray([value.number, value.id, value.title, value.state, value.user.login, value.assignee.login, value.created_at,  value.updated_at, value.closed_at, value.milestone.title, 
                                     labels.join(','), value.comments, value.body]).join(sep) ) :
-                              log( escapeArray([value.number, value.id, value.title, value.state, value.user.login, value.assignee.login, value.created_at, value.milestone.title, 
+                              log( escapeArray([value.number, value.id, value.title, value.state, value.user.login, value.assignee.login, value.created_at, value.updated_at, value.closed_at, value.milestone.title, 
                                     labels.join(','), value.comments]).join(sep) ) ;
             });
 
@@ -244,6 +251,8 @@ function listGists(user){
         // REST function to use
         url: 'https://api.github.com/users/' + user + '/gists',
         type: 'GET',
+        username: argv.user,
+        password: argv.password,
 
         dataType: 'jsonp',
 
@@ -281,11 +290,11 @@ function recurse() {
 
 listRepoIssuesHeader();
 
-$.when( getOauthToken(argv.user, argv.password) )
+$.when( true )
     .then( function() {
         logDebug('$.when.then...');
 
-        linkNextPage = 'https://api.github.com/repos/' + argv.owner + '/' + argv.repo + '/issues?access_token=' + oauthToken.token; // + '&per_page=100';
+        linkNextPage = 'https://api.github.com/repos/' + argv.owner + '/' + argv.repo + '/issues?state=all'; // + '&per_page=100';
 
         recurse();
 
